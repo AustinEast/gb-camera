@@ -63,6 +63,7 @@ a:active {
 }
 
 .title {
+  display: flex;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
