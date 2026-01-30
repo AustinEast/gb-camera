@@ -19,6 +19,7 @@ const PRESET_PALETTES = [
   { id: "pong", name: "Pong", colors: ["#5c4bff", "#fdfff2", "#14e1ff", "#ff7ad6"] },
   { id: "rettie", name: "Rettie Punk", colors: ["#151c18", "#094466", "#cc1242", "#f0745c"] },
   { id: "voltage", name: "Voltage Warning", colors: ["#0b3d02", "#635650", "#d3ae21", "#d4c9c3"] },
+  { id: "watermelon", name: "Watermelon", colors: ["#d71d1d", "#ff6666", "#8cb389", "#7dff7a"] },
 ];
 
 const LS_CUSTOM_KEY = "gbcam_custom_palettes_v1";
