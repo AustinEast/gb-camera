@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Adds <include> tag -->
+  <script src="https://unpkg.com/htmlincludejs"></script>
+  <title>GB Camera Photo Gallery</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main>
+    <include src="austineast.github.io.base/elements/nav.html"></include>
+    <div class="wrap">
+        <header class="topbar">
+        <div class="title">
+            <h1>GB Camera Photo Gallery</h1>
+            <p>taken with a Game Boy Camera</p>
+            <p>resolution: 128x112 pixels</p>
+        </div>
+
+        <label class="label">Palette</label>
+
+        <div class="controls">
+            <div class="row">
+            <select id="paletteSelect"></select>
+            <button id="savePaletteBtn" class="btn">Save</button>
+            <button id="resetPaletteBtn" class="btn">Reset</button>
+            <button id="copyLinkBtn" class="btn">Copy Link</button>
+            </div>
+
+            <div class="row swatches">
+            <div class="swatch"><input type="color" id="c0" /><span>0</span></div>
+            <div class="swatch"><input type="color" id="c1" /><span>1</span></div>
+            <div class="swatch"><input type="color" id="c2" /><span>2</span></div>
+            <div class="swatch"><input type="color" id="c3" /><span>3</span></div>
+            </div>
+        </div>
+        </header>
+
+        <section class="grid" id="grid" aria-label="Gallery grid"></section>
+    </div>
+  </main>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <div class="lightboxBackdrop" id="lightboxBackdrop"></div>
+
+    <div class="lightboxPanel" role="dialog" aria-modal="true" aria-label="Image viewer">
+      <button class="lbBtn lbClose" id="lbClose" aria-label="Close">✕</button>
+      <button class="lbBtn lbPrev" id="lbPrev" aria-label="Previous">‹</button>
+      <button class="lbBtn lbNext" id="lbNext" aria-label="Next">›</button>
+
+      <div class="lightboxCanvasWrap" id="lightboxCanvasWrap">
+        <canvas id="lightboxCanvas" class="lbCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./gallery.js"></script>
+</body>
+</html>
