@@ -168,8 +168,8 @@ select {
 }
 
 .lightboxCanvasWrap {
-  max-width: min(92vw, 1200px);
-  max-height: min(86vh, 900px);
+  max-width: min(92vw, 600px);
+  max-height: min(86vh, 450px);
   width: 100%;
   height: 100%;
   display: grid;
