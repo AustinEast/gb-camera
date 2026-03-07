@@ -86,7 +86,7 @@ a:active {
 }
 
 .label {
-  color: var(--muted);
+  /* color: var(--muted); */
   font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
