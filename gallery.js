@@ -128,6 +128,7 @@ let lbIndex = 0;
 
 function applyPageBackground() {
   document.body.style.background = activePalette[3];
+  document.body.style.color = activePalette[0];
 }
 
 function setPalette(colors) {
