@@ -2,6 +2,7 @@ const MANIFEST_URL = "./manifest.json";
 
 const PRESET_PALETTES = [
   { id: "pocket", name: "Pocket", colors: ["#1a1a1a", "#555555", "#aaaaaa", "#f2f2f2"] },
+  { id: "pocketdark", name: "Pocket Dark", colors: ["#c7c7c7", "#707070", "rgb(59, 59, 59)", "rgb(18, 18, 18)"] },
   { id: "dmg", name: "DMG", colors: ["#0f380f", "#306230", "#8bac0f", "#9bbc0f"] },
   { id: "blue", name: "Ocean", colors: ["#06101a", "#173a5e", "#5aa6d6", "#d7f3ff"] },
   { id: "hot", name: "Infra", colors: ["#12060a", "#5a1130", "#d83b5c", "#ffe6d5"] },
