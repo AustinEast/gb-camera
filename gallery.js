@@ -2,11 +2,11 @@ const MANIFEST_URL = "./manifest.json";
 
 const PRESET_PALETTES = [
   { id: "pocket", name: "Pocket", colors: ["#1a1a1a", "#555555", "#aaaaaa", "#f2f2f2"] },
-  { id: "pocketdark", name: "Pocket Dark", colors: ["#c7c7c7", "#707070", "#3b3b3b", "#121212"] },
   { id: "dmg", name: "DMG", colors: ["#0f380f", "#306230", "#8bac0f", "#9bbc0f"] },
   { id: "blue", name: "Ocean", colors: ["#06101a", "#173a5e", "#5aa6d6", "#d7f3ff"] },
   { id: "hot", name: "Infra", colors: ["#12060a", "#5a1130", "#d83b5c", "#ffe6d5"] },
   { id: "bitter", name: "Bittersweet", colors: ["#282328", "#545c7e", "#c56981", "#a3a29a"] },
+  { id: "negative", name: "Negative", colors: ["#c7c7c7", "#707070", "#3b3b3b", "#121212"] },
   { id: "icecream", name: "Ice Cream", colors: ["#7c3f58", "#eb6b6f", "#f9a875", "#fff6d3"] },
   { id: "demi", name: "Demichrome", colors: ["#211e20", "#555568", "#a0a08b", "#e9efec"] },
   { id: "mist", name: "Mist", colors: ["#2d1b00", "#1e606e", "#5ab9a8", "#c4f0c2"] },
@@ -106,8 +106,9 @@ function rebuildPaletteSelect() {
     els.paletteSelect.appendChild(og);
   }
 
-  const defaultId = window.matchMedia("(prefers-color-scheme: dark)").matches ? "pocketdark" : "pocket";
-  els.paletteSelect.value = defaultId; // localStorage.getItem(LS_LAST_PALETTE_KEY) || defaultId;
+  //const defaultId = window.matchMedia("(prefers-color-scheme: dark)").matches ? "pocketdark" : "pocket";
+  const defaultId = "pocket";
+  els.paletteSelect.value = localStorage.getItem(LS_LAST_PALETTE_KEY) || defaultId;
 }
 
 function getPaletteById(id) {
@@ -123,10 +124,7 @@ let files = [];
 // cache: file -> { w,h, toneIndex }
 const cache = new Map();
 
-let activePalette = (window.matchMedia("(prefers-color-scheme: dark)").matches
-  ? PRESET_PALETTES.find(p => p.id === "pocketdark")
-  : PRESET_PALETTES[0]
-).colors.slice();
+let activePalette = PRESET_PALETTES[0].colors.slice();
 
 // Lightbox index (into files)
 let lbIndex = 0;
