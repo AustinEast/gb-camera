@@ -6,6 +6,7 @@ const PRESET_PALETTES = [
   { id: "blue", name: "Ocean", colors: ["#06101a", "#173a5e", "#5aa6d6", "#d7f3ff"] },
   { id: "hot", name: "Infra", colors: ["#12060a", "#5a1130", "#d83b5c", "#ffe6d5"] },
   { id: "bitter", name: "Bittersweet", colors: ["#282328", "#545c7e", "#c56981", "#a3a29a"] },
+  { id: "negative", name: "Negative", colors: ["#c7c7c7", "#707070", "#3b3b3b", "#121212"] },
   { id: "icecream", name: "Ice Cream", colors: ["#7c3f58", "#eb6b6f", "#f9a875", "#fff6d3"] },
   { id: "demi", name: "Demichrome", colors: ["#211e20", "#555568", "#a0a08b", "#e9efec"] },
   { id: "mist", name: "Mist", colors: ["#2d1b00", "#1e606e", "#5ab9a8", "#c4f0c2"] },
@@ -111,7 +112,9 @@ function rebuildPaletteSelect() {
     els.paletteSelect.appendChild(og);
   }
 
-  els.paletteSelect.value = localStorage.getItem(LS_LAST_PALETTE_KEY) || PRESET_PALETTES[0].id;
+  //const defaultId = window.matchMedia("(prefers-color-scheme: dark)").matches ? "pocketdark" : "pocket";
+  const defaultId = "pocket";
+  els.paletteSelect.value = localStorage.getItem(LS_LAST_PALETTE_KEY) || defaultId;
 }
 
 function getPaletteById(id) {
@@ -144,6 +147,7 @@ function getVisibleFiles() {
 
 function applyPageBackground() {
   document.body.style.background = activePalette[3];
+  document.body.style.color = activePalette[0];
 }
 
 function setPalette(colors) {
