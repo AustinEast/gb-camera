@@ -24,6 +24,7 @@ const PRESET_PALETTES = [
 
 const LS_CUSTOM_KEY = "gbcam_custom_palettes_v1";
 const LS_LAST_PALETTE_KEY = "gbcam_last_palette_v1";
+const DEV_MODE_QUERY_PARAM = "dev";
 
 const els = {
   grid: document.getElementById("grid"),
@@ -35,6 +36,11 @@ const els = {
   c1: document.getElementById("c1"),
   c2: document.getElementById("c2"),
   c3: document.getElementById("c3"),
+  devPanel: document.getElementById("devPanel"),
+  reorderToggleBtn: document.getElementById("reorderToggleBtn"),
+  copyManifestBtn: document.getElementById("copyManifestBtn"),
+  resetManifestBtn: document.getElementById("resetManifestBtn"),
+  devStatus: document.getElementById("devStatus"),
 
   // lightbox
   lightbox: document.getElementById("lightbox"),
@@ -115,8 +121,11 @@ function getPaletteById(id) {
 
 // ---- Gallery state ----
 
-/** @type {string[]} */
+/** @type {{file: string, hidden: boolean}[]} */
 let files = [];
+
+/** @type {{file: string, hidden: boolean}[]} */
+let originalManifestFiles = [];
 
 // cache: file -> { w,h, toneIndex }
 const cache = new Map();
@@ -125,6 +134,13 @@ let activePalette = PRESET_PALETTES[0].colors.slice();
 
 // Lightbox index (into files)
 let lbIndex = 0;
+let isDeveloperMode = false;
+let isReorderMode = false;
+let dragIndex = null;
+
+function getVisibleFiles() {
+  return files.filter((entry) => !entry.hidden);
+}
 
 function applyPageBackground() {
   document.body.style.background = activePalette[3];
@@ -141,6 +157,141 @@ function setPalette(colors) {
   applyPageBackground();
   renderAllGrid();
   if (isLightboxOpen()) renderLightbox();
+}
+
+function setDevStatus(message) {
+  if (els.devStatus) {
+    els.devStatus.textContent = message;
+  }
+}
+
+function setDeveloperMode(enabled) {
+  isDeveloperMode = enabled;
+  els.devPanel.hidden = !enabled;
+  document.body.classList.toggle("developer-mode", enabled);
+
+  if (!enabled) {
+    setReorderMode(false);
+    setDevStatus("Developer mode hidden. Press Shift+Option+D to show it again.");
+    return;
+  }
+
+  setDevStatus("Drag or delete items, then copy the current manifest JSON.");
+}
+
+function setReorderMode(enabled) {
+  isReorderMode = enabled;
+  dragIndex = null;
+
+  els.reorderToggleBtn.setAttribute("aria-pressed", String(enabled));
+  els.reorderToggleBtn.textContent = enabled ? "Reorder On" : "Reorder Off";
+  document.body.classList.toggle("reorder-mode", enabled);
+
+  if (enabled && isLightboxOpen()) {
+    closeLightbox();
+  }
+
+  buildGrid();
+  if (!enabled) {
+    setDevStatus("Reorder mode disabled. Delete, copy, or reset the manifest from developer mode.");
+    return;
+  }
+
+  setDevStatus("Reorder mode enabled. Drag a photo tile onto another tile to move it.");
+}
+
+function toggleDeveloperMode() {
+  setDeveloperMode(!isDeveloperMode);
+}
+
+function toggleReorderMode() {
+  if (!isDeveloperMode) return;
+  setReorderMode(!isReorderMode);
+}
+
+function moveFile(sourceIndex, targetIndex) {
+  if (sourceIndex === targetIndex) return false;
+  if (sourceIndex < 0 || sourceIndex >= files.length) return false;
+  if (targetIndex < 0 || targetIndex > files.length) return false;
+
+  const next = files.slice();
+  const [moved] = next.splice(sourceIndex, 1);
+  const insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+  next.splice(insertionIndex, 0, moved);
+  files = next;
+  const visibleFiles = getVisibleFiles();
+  lbIndex = clamp(lbIndex, 0, Math.max(0, visibleFiles.length - 1));
+  return true;
+}
+
+function getDropIndex(item, fallbackIndex, event) {
+  const rect = item.getBoundingClientRect();
+  const afterTarget = event.clientY > rect.top + rect.height / 2 || event.clientX > rect.left + rect.width / 2;
+  return afterTarget ? fallbackIndex + 1 : fallbackIndex;
+}
+
+function clearDragState() {
+  dragIndex = null;
+  for (const element of els.grid.querySelectorAll(".dragging, .drop-target")) {
+    element.classList.remove("dragging", "drop-target");
+  }
+}
+
+function getManifestText() {
+  return `${JSON.stringify(files, null, 2)}
+`;
+}
+
+function flashButtonText(button, activeText, idleText) {
+  if (!button) return;
+  button.textContent = activeText;
+  window.setTimeout(() => {
+    button.textContent = idleText;
+  }, 900);
+}
+
+async function copyManifestToClipboard() {
+  const manifestText = getManifestText();
+  try {
+    await navigator.clipboard.writeText(manifestText);
+    flashButtonText(els.copyManifestBtn, "Manifest Copied", "Copy manifest.json");
+    setDevStatus(`Copied manifest.json with ${files.length} entries to the clipboard.`);
+  } catch {
+    prompt("Copy this manifest:", manifestText);
+    setDevStatus("Clipboard access was blocked, so the manifest was opened in a prompt.");
+  }
+}
+
+function resetManifest() {
+  clearDragState();
+  files = originalManifestFiles.slice();
+  const visibleFiles = getVisibleFiles();
+  lbIndex = clamp(lbIndex, 0, Math.max(0, visibleFiles.length - 1));
+
+  if (isLightboxOpen()) {
+    closeLightbox();
+  }
+
+  buildGrid();
+  setDevStatus(`Restored ${files.length} entries from manifest.json.`);
+}
+
+function toggleHidden(index) {
+  if (index < 0 || index >= files.length) return null;
+
+  const entry = files[index];
+  const wasHidden = entry.hidden;
+  files[index] = { ...entry, hidden: !wasHidden };
+  return files[index];
+}
+
+function deleteFileAt(index) {
+  return toggleHidden(index);
+}
+
+function getInitialDeveloperMode() {
+  const url = new URL(location.href);
+  return url.searchParams.get(DEV_MODE_QUERY_PARAM) === "1";
 }
 
 function onSwatchChange() {
@@ -194,14 +345,26 @@ async function fetchManifest() {
   if (!res.ok) throw new Error(`Failed to load manifest: ${res.status}`);
   const json = await res.json();
 
+  // Handle legacy format: string[] -> new format: {file, hidden}[]
   if (Array.isArray(json) && json.every(x => typeof x === "string")) {
-    files = json;
+    const converted = json.map(f => ({ file: f, hidden: false }));
+    originalManifestFiles = converted.slice();
+    files = converted.slice();
     return;
   }
-  throw new Error("manifest.json should be an array of strings (file paths).");
+
+  // Handle new format: {file, hidden}[]
+  if (Array.isArray(json) && json.every(x => x && typeof x.file === "string" && typeof x.hidden === "boolean")) {
+    originalManifestFiles = json.slice();
+    files = json.slice();
+    return;
+  }
+  throw new Error("manifest.json should be an array of strings (file paths) or objects with {file, hidden}.");
 }
 
-async function loadToneIndex(file) {
+async function loadToneIndex(fileEntry) {
+  // Handle both legacy string and new {file, hidden} format
+  const file = typeof fileEntry === "string" ? fileEntry : fileEntry.file;
   if (cache.has(file)) return cache.get(file);
 
   const img = await new Promise((resolve, reject) => {
@@ -255,9 +418,11 @@ function computeScaleToWidth(targetW, imgW) {
 }
 
 function drawToCanvas(canvas, entry, targetW) {
-  // 1) integer scale (true pixel-perfect buffer)
+  // Render at the next integer scale, then CSS-fit to the cell.
+  // This avoids large gaps when target width falls between integer multiples.
   const fudge = 2;
-  const intScale = Math.max(1, Math.floor((targetW - fudge) / entry.w));
+  const fitWidth = Math.max(entry.w, targetW - fudge);
+  const intScale = Math.max(1, Math.ceil(fitWidth / entry.w));
 
   const bufW = entry.w * intScale;
   const bufH = entry.h * intScale;
@@ -265,10 +430,9 @@ function drawToCanvas(canvas, entry, targetW) {
   canvas.width = bufW;
   canvas.height = bufH;
 
-  // 2) optional fractional CSS scale to fill the remaining gap
-  const MAX_FILL_UPSCALE = 1.12; // allow up to +12% stretch
-  const desired = targetW;       // fill the cell width
-  const cssScale = Math.min(MAX_FILL_UPSCALE, Math.max(1, desired / bufW));
+  // 2) fractional CSS scale to fit cell width exactly
+  const desired = Math.max(entry.w, targetW);
+  const cssScale = desired / bufW;
 
   const cssW = Math.round(bufW * cssScale);
   const cssH = Math.round(bufH * cssScale);
@@ -310,37 +474,154 @@ function drawToCanvas(canvas, entry, targetW) {
 
 // ---- Grid ----
 
+function createGridItem(fileEntry, idx, isHidden) {
+  const item = document.createElement("div");
+  item.className = "item";
+  item.setAttribute("data-file", fileEntry.file);
+  item.setAttribute("data-idx", String(idx));
+  item.setAttribute("data-hidden", String(isHidden));
+  item.draggable = isReorderMode;
+  item.classList.toggle("reorderable", isReorderMode);
+  if (isHidden) item.classList.add("hidden-item");
+
+  const preview = document.createElement("button");
+  preview.className = "itemPreview";
+  preview.type = "button";
+  preview.draggable = isReorderMode;
+  preview.setAttribute("aria-label", isReorderMode ? `Reorder image ${idx + 1}` : `Open image ${idx + 1}`);
+
+  const canvas = document.createElement("canvas");
+  canvas.className = "gbcCanvas";
+
+  preview.appendChild(canvas);
+  item.appendChild(preview);
+
+  if (isDeveloperMode) {
+    const actionBtn = document.createElement("button");
+    actionBtn.className = "itemDelete btn";
+    actionBtn.type = "button";
+    actionBtn.textContent = isHidden ? "Restore" : "Delete";
+    actionBtn.setAttribute("aria-label", isHidden ? `Restore image ${idx + 1}` : `Delete image ${idx + 1} from manifest`);
+    actionBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const entry = toggleHidden(idx);
+      if (!entry) return;
+
+      buildGrid();
+      setDevStatus(entry.hidden ? `Marked ${entry.file} as deleted.` : `Restored ${entry.file} to the manifest.`);
+    });
+    item.appendChild(actionBtn);
+  }
+
+  preview.addEventListener("click", () => {
+    if (isReorderMode || isHidden) return;
+    openLightbox(idx);
+  });
+
+  item.addEventListener("dragstart", (event) => {
+    if (!isReorderMode) return;
+    dragIndex = idx;
+    item.classList.add("dragging");
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(idx));
+  });
+
+  item.addEventListener("dragover", (event) => {
+    if (!isReorderMode || dragIndex === null) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    item.classList.add("drop-target");
+  });
+
+  item.addEventListener("dragleave", () => {
+    item.classList.remove("drop-target");
+  });
+
+  item.addEventListener("drop", (event) => {
+    if (!isReorderMode || dragIndex === null) return;
+    event.preventDefault();
+    item.classList.remove("drop-target");
+
+    // If dragging a hidden item to visible section, unhide it
+    if (files[dragIndex].hidden && !isHidden) {
+      files[dragIndex].hidden = false;
+    }
+    // If dragging a visible item to hidden section, hide it
+    if (!files[dragIndex].hidden && isHidden) {
+      files[dragIndex].hidden = true;
+    }
+
+    const targetIndex = getDropIndex(item, idx, event);
+    const changed = moveFile(dragIndex, targetIndex);
+    clearDragState();
+
+    if (!changed) return;
+
+    setDevStatus(`Moved image ${dragIndex + 1} to position ${Math.max(1, Math.min(targetIndex, files.length))}.`);
+    buildGrid();
+  });
+
+  item.addEventListener("dragend", clearDragState);
+
+  // kick off load+render
+  loadToneIndex(fileEntry).then((entry) => {
+    const wrapW = Math.floor(preview.clientWidth || item.clientWidth);
+    drawToCanvas(canvas, entry, wrapW);
+  }).catch(console.error);
+
+  return item;
+}
+
+function appendGroupedItems(container, entries, isHidden) {
+  for (let start = 0; start < entries.length; start += 4) {
+    const groupEntries = entries.slice(start, start + 4);
+    const group = document.createElement("div");
+    group.className = "galleryGroup";
+
+    groupEntries.forEach((fileEntry) => {
+      const idx = files.indexOf(fileEntry);
+      group.appendChild(createGridItem(fileEntry, idx, isHidden));
+    });
+
+    container.appendChild(group);
+  }
+}
+
 function buildGrid() {
   els.grid.innerHTML = "";
 
-  files.forEach((file, idx) => {
-    const item = document.createElement("button");
-    item.className = "item";
-    item.type = "button";
-    item.setAttribute("data-file", file);
-    item.setAttribute("data-idx", String(idx));
-    item.setAttribute("aria-label", `Open image ${idx + 1}`);
+  const visibleItems = files.filter(f => !f.hidden);
+  const hiddenItems = files.filter(f => f.hidden);
 
-    // Remove button chrome
-    item.style.border = "none";
-    item.style.padding = "0";
-    item.style.background = "transparent";
+  if (!visibleItems.length && !hiddenItems.length) {
+    const empty = document.createElement("div");
+    empty.className = "emptyState";
+    empty.textContent = isDeveloperMode
+      ? "No images in the working manifest. Use Reset manifest to restore the loaded file."
+      : "No images available.";
+    els.grid.appendChild(empty);
+    return;
+  }
 
-    const canvas = document.createElement("canvas");
-    canvas.className = "gbcCanvas";
+  // Render visible items
+  appendGroupedItems(els.grid, visibleItems, false);
 
-    item.appendChild(canvas);
+  // Render deleted items section
+  if (hiddenItems.length > 0 && isDeveloperMode) {
+    const deletedHeading = document.createElement("div");
+    deletedHeading.className = "recoveryHeading";
+    deletedHeading.textContent = `Deleted Photos (${hiddenItems.length})`;
+    els.grid.appendChild(deletedHeading);
 
-    item.addEventListener("click", () => openLightbox(idx));
+    const recoverySection = document.createElement("div");
+    recoverySection.className = "recoverySection";
 
-    els.grid.appendChild(item);
+    appendGroupedItems(recoverySection, hiddenItems, true);
 
-    // kick off load+render
-    loadToneIndex(file).then((entry) => {
-      const wrapW = Math.floor(item.clientWidth);
-      drawToCanvas(canvas, entry, wrapW);
-    }).catch(console.error);
-  });
+    els.grid.appendChild(recoverySection);
+  }
 }
 
 function renderAllGrid() {
@@ -348,12 +629,13 @@ function renderAllGrid() {
   for (const item of items) {
     const file = item.getAttribute("data-file");
     const canvas = item.querySelector("canvas");
+    const preview = item.querySelector(".itemPreview");
     if (!file || !canvas) continue;
 
     const entry = cache.get(file);
     if (!entry) continue;
 
-    const wrapW = Math.floor(item.clientWidth);
+    const wrapW = Math.floor((preview && preview.clientWidth) || item.clientWidth);
     drawToCanvas(canvas, entry, wrapW);
   }
 }
@@ -365,7 +647,16 @@ function isLightboxOpen() {
 }
 
 function openLightbox(idx) {
-  lbIndex = clamp(idx, 0, files.length - 1);
+  const visibleFiles = getVisibleFiles();
+  if (!visibleFiles.length) return;
+
+  const selected = files[idx];
+  if (!selected || selected.hidden) return;
+
+  const visibleIndex = visibleFiles.findIndex((entry) => entry.file === selected.file);
+  if (visibleIndex < 0) return;
+
+  lbIndex = clamp(visibleIndex, 0, visibleFiles.length - 1);
   els.lightbox.classList.add("open");
   els.lightbox.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
@@ -380,17 +671,29 @@ function closeLightbox() {
 }
 
 function prevLightbox() {
-  lbIndex = (lbIndex - 1 + files.length) % files.length;
+  const visibleFiles = getVisibleFiles();
+  if (!visibleFiles.length) return;
+  lbIndex = (lbIndex - 1 + visibleFiles.length) % visibleFiles.length;
   renderLightbox();
 }
 
 function nextLightbox() {
-  lbIndex = (lbIndex + 1) % files.length;
+  const visibleFiles = getVisibleFiles();
+  if (!visibleFiles.length) return;
+  lbIndex = (lbIndex + 1) % visibleFiles.length;
   renderLightbox();
 }
 
 function renderLightbox() {
-  const file = files[lbIndex];
+  const visibleFiles = getVisibleFiles();
+  if (!visibleFiles.length) {
+    closeLightbox();
+    return;
+  }
+
+  lbIndex = clamp(lbIndex, 0, visibleFiles.length - 1);
+  const fileEntry = visibleFiles[lbIndex];
+  const file = fileEntry.file;
   const wrapW = Math.floor(els.lbWrap.clientWidth);
   const wrapH = Math.floor(els.lbWrap.clientHeight);
 
@@ -467,6 +770,9 @@ function bindUi() {
   els.savePaletteBtn.addEventListener("click", onSavePalette);
   els.resetPaletteBtn.addEventListener("click", onResetPalette);
   els.copyLinkBtn.addEventListener("click", onCopyLink);
+  els.reorderToggleBtn.addEventListener("click", toggleReorderMode);
+  els.copyManifestBtn.addEventListener("click", copyManifestToClipboard);
+  els.resetManifestBtn.addEventListener("click", resetManifest);
 
   els.c0.addEventListener("input", onSwatchChange);
   els.c1.addEventListener("input", onSwatchChange);
@@ -480,6 +786,12 @@ function bindUi() {
   els.lbNext.addEventListener("click", nextLightbox);
 
   window.addEventListener("keydown", (e) => {
+    if (e.shiftKey && e.altKey && e.key.toLowerCase() === "d") {
+      e.preventDefault();
+      toggleDeveloperMode();
+      return;
+    }
+
     if (!isLightboxOpen()) return;
     if (e.key === "Escape") closeLightbox();
     if (e.key === "ArrowLeft") prevLightbox();
@@ -495,6 +807,7 @@ function bindUi() {
 // ---- Init ----
 
 async function main() {
+  setDeveloperMode(getInitialDeveloperMode());
   rebuildPaletteSelect();
   bindUi();
 

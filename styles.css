@@ -78,6 +78,43 @@ a:active {
 
 .controls { display: grid; gap: 10px; }
 
+.devPanel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  background: rgba(255,255,255,0.52);
+}
+
+.devPanel[hidden] {
+  display: none;
+}
+
+.devPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.devHint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.emptyState {
+  grid-column: 1 / -1;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  background: rgba(255,255,255,0.45);
+}
+
 .row {
   display: flex;
   align-items: center;
@@ -123,17 +160,85 @@ select {
 
 .grid {
   display: grid;
+  gap: 36px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 526px), 1fr));
+  align-items: start;
+}
+
+.galleryGroup {
+  position: relative;
+  display: grid;
   gap: 6px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .item {
+  position: relative;
+  width: 100%;
+}
+
+.itemPreview {
   width: 100%;
   display: grid;
   place-items: center;
   border: none;
   padding: 0;
   background: transparent;
+}
+
+.itemDelete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.reorder-mode .item.reorderable,
+.reorder-mode .itemPreview {
+  cursor: grab;
+}
+
+.reorder-mode .item.reorderable.dragging,
+.reorder-mode .item.dragging .itemPreview {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+.reorder-mode .item.reorderable.drop-target {
+  outline: 2px dashed rgba(0,0,0,0.28);
+  outline-offset: 4px;
+}
+
+.item.hidden-item {
+  opacity: 0.55;
+}
+
+.recoveryHeading {
+  grid-column: 1 / -1;
+  padding: 12px 0 8px 0;
+  margin: 12px 0 0 0;
+  border-top: 1px solid var(--border2);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.recoverySection {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 526px), 1fr));
+}
+
+@media (max-width: 560px) {
+  .grid,
+  .recoverySection {
+    grid-template-columns: 1fr;
+  }
 }
 
 .gbcCanvas {

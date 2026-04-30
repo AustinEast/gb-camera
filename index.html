@@ -39,6 +39,21 @@
             <div class="swatch"><input type="color" id="c2" /><span>2</span></div>
             <div class="swatch"><input type="color" id="c3" /><span>3</span></div>
             </div>
+
+            <section id="devPanel" class="devPanel" hidden aria-label="Developer tools">
+              <div class="devPanelHeader">
+                <strong>Developer Mode</strong>
+                <span>Toggle with Shift+Option+D or <code>?dev=1</code></span>
+              </div>
+
+              <div class="row">
+                <button id="reorderToggleBtn" class="btn" type="button" aria-pressed="false">Reorder Off</button>
+                <button id="copyManifestBtn" class="btn" type="button">Copy manifest.json</button>
+                <button id="resetManifestBtn" class="btn" type="button">Reset manifest</button>
+              </div>
+
+              <p class="devHint" id="devStatus">Drag or delete items, then copy the current manifest JSON.</p>
+            </section>
         </div>
         </header>
 

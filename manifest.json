@@ -1,26 +1,170 @@
 [
-    "assets/1745137663-20.png",
-    "assets/1745137663-26.png",
-    "assets/1739387972-7.png",
-    "assets/1739387972-8.png",
-    "assets/1742500677-0.png",
-    "assets/1745137663-21.png",
-    "assets/1745137663-22.png",
-    "assets/1758060870-4.png",
-    "assets/1745137663-24.png",
-    "assets/1758060870-5.png",
-    "assets/1758060870-7.png",
-    "assets/1758060870-8.png",
-    "assets/1758060928-18.png",
-    "assets/1758060928-19.png",
-    "assets/1758060928-23.png",
-    "assets/1758060928-26.png",
-    "assets/1758060928-27.png",
-    "assets/1758060928-1.png",
-    "assets/1758060928-29.png",
-    "assets/1769754118-5.png",
-    "assets/1769754118-15.png",
-    "assets/1769754118-17.png",
-    "assets/1769754118-19.png",
-    "assets/1745137663-28.png"
+  {
+    "file": "assets/1745137663-20.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1745137663-26.png",
+    "hidden": true
+  },
+  {
+    "file": "assets/1739387972-0.png",
+    "hidden": true
+  },
+  {
+    "file": "assets/1745137663-0.png",
+    "hidden": true
+  },
+  {
+    "file": "assets/1745137663-22.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1745137663-21.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1745137663-24.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060870-7.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1742500677-0.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1742500677-10.png",
+    "hidden": true
+  },
+  {
+    "file": "assets/1758060870-4.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060870-5.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060928-27.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060928-18.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060928-26.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060928-28.png",
+    "hidden": true
+  },
+  {
+    "file": "assets/1745137663-17.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1776281313-25.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1776281313-29.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1776281313-21.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1776281313-24.png",
+    "hidden": true
+  },
+  {
+    "file": "assets/1776281313-22.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1745137663-12.png",
+    "hidden": true
+  },
+  {
+    "file": "assets/1745137663-5.png",
+    "hidden": true
+  },
+  {
+    "file": "assets/1776281313-9.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1776281313-26.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1776281313-1.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060928-19.png",
+    "hidden": true
+  },
+  {
+    "file": "assets/1776281313-8.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060928-29.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1769754118-5.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1745137663-11.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060928-23.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1769754118-15.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1739387972-7.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1739387972-8.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1769754118-17.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060928-1.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1758060870-8.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1769754118-19.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1745137663-28.png",
+    "hidden": false
+  },
+  {
+    "file": "assets/1776281313-6.png",
+    "hidden": true
+  }
 ]
