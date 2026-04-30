@@ -124,10 +124,10 @@ function getPaletteById(id) {
 
 // ---- Gallery state ----
 
-/** @type {{file: string, hidden: boolean}[]} */
+/** @type {{file: string, hidden: boolean, featured: boolean}[]} */
 let files = [];
 
-/** @type {{file: string, hidden: boolean}[]} */
+/** @type {{file: string, hidden: boolean, featured: boolean}[]} */
 let originalManifestFiles = [];
 
 // cache: file -> { w,h, toneIndex }
@@ -140,6 +140,7 @@ let lbIndex = 0;
 let isDeveloperMode = false;
 let isReorderMode = false;
 let dragIndex = null;
+let gridResizeObserver = null;
 
 function getVisibleFiles() {
   return files.filter((entry) => !entry.hidden);
@@ -280,6 +281,14 @@ function resetManifest() {
   setDevStatus(`Restored ${files.length} entries from manifest.json.`);
 }
 
+function toggleFeatured(index) {
+  if (index < 0 || index >= files.length) return null;
+
+  const entry = files[index];
+  files[index] = { ...entry, featured: !entry.featured };
+  return files[index];
+}
+
 function toggleHidden(index) {
   if (index < 0 || index >= files.length) return null;
 
@@ -351,19 +360,24 @@ async function fetchManifest() {
 
   // Handle legacy format: string[] -> new format: {file, hidden}[]
   if (Array.isArray(json) && json.every(x => typeof x === "string")) {
-    const converted = json.map(f => ({ file: f, hidden: false }));
+    const converted = json.map(f => ({ file: f, hidden: false, featured: false }));
     originalManifestFiles = converted.slice();
     files = converted.slice();
     return;
   }
 
-  // Handle new format: {file, hidden}[]
+  // Handle current format: {file, hidden, featured?}[]
   if (Array.isArray(json) && json.every(x => x && typeof x.file === "string" && typeof x.hidden === "boolean")) {
-    originalManifestFiles = json.slice();
-    files = json.slice();
+    const normalized = json.map((entry) => ({
+      file: entry.file,
+      hidden: entry.hidden,
+      featured: typeof entry.featured === "boolean" ? entry.featured : false,
+    }));
+    originalManifestFiles = normalized.slice();
+    files = normalized.slice();
     return;
   }
-  throw new Error("manifest.json should be an array of strings (file paths) or objects with {file, hidden}.");
+  throw new Error("manifest.json should be an array of strings (file paths) or objects with {file, hidden, featured?}.");
 }
 
 async function loadToneIndex(fileEntry) {
@@ -487,6 +501,7 @@ function createGridItem(fileEntry, idx, isHidden) {
   item.draggable = isReorderMode;
   item.classList.toggle("reorderable", isReorderMode);
   if (isHidden) item.classList.add("hidden-item");
+  if (fileEntry.featured) item.classList.add("featured-item");
 
   const preview = document.createElement("button");
   preview.className = "itemPreview";
@@ -501,11 +516,15 @@ function createGridItem(fileEntry, idx, isHidden) {
   item.appendChild(preview);
 
   if (isDeveloperMode) {
+    const actions = document.createElement("div");
+    actions.className = "itemActions";
+
     const actionBtn = document.createElement("button");
-    actionBtn.className = "itemDelete btn";
+    actionBtn.className = "itemAction btn";
     actionBtn.type = "button";
-    actionBtn.textContent = isHidden ? "Restore" : "Delete";
-    actionBtn.setAttribute("aria-label", isHidden ? `Restore image ${idx + 1}` : `Delete image ${idx + 1} from manifest`);
+    actionBtn.textContent = isHidden ? "↺" : "✖";
+    actionBtn.title = isHidden ? "Restore" : "Hide";
+    actionBtn.setAttribute("aria-label", isHidden ? `Restore image ${idx + 1}` : `Hide image ${idx + 1} from manifest`);
     actionBtn.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -516,7 +535,31 @@ function createGridItem(fileEntry, idx, isHidden) {
       buildGrid();
       setDevStatus(entry.hidden ? `Marked ${entry.file} as deleted.` : `Restored ${entry.file} to the manifest.`);
     });
-    item.appendChild(actionBtn);
+
+    const featureBtn = document.createElement("button");
+    featureBtn.className = "itemAction btn";
+    featureBtn.type = "button";
+    featureBtn.textContent = fileEntry.featured ? "❐" : "⛶";
+    featureBtn.title = fileEntry.featured ? "Use normal size" : "Use full-group size";
+    featureBtn.setAttribute("aria-label", fileEntry.featured
+      ? `Use normal size for image ${idx + 1}`
+      : `Use full-group size for image ${idx + 1}`);
+    featureBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const entry = toggleFeatured(idx);
+      if (!entry) return;
+
+      buildGrid();
+      setDevStatus(entry.featured
+        ? `Expanded ${entry.file} to full-group size.`
+        : `Returned ${entry.file} to normal size.`);
+    });
+
+    actions.appendChild(featureBtn);
+    actions.appendChild(actionBtn);
+    item.appendChild(actions);
   }
 
   preview.addEventListener("click", () => {
@@ -571,7 +614,7 @@ function createGridItem(fileEntry, idx, isHidden) {
 
   // kick off load+render
   loadToneIndex(fileEntry).then((entry) => {
-    const wrapW = Math.floor(preview.clientWidth || item.clientWidth);
+    const wrapW = Math.floor(item.clientWidth || preview.clientWidth);
     drawToCanvas(canvas, entry, wrapW);
   }).catch(console.error);
 
@@ -579,18 +622,42 @@ function createGridItem(fileEntry, idx, isHidden) {
 }
 
 function appendGroupedItems(container, entries, isHidden) {
-  for (let start = 0; start < entries.length; start += 4) {
-    const groupEntries = entries.slice(start, start + 4);
+  let pending = [];
+
+  const flushPending = () => {
+    if (!pending.length) return;
+
     const group = document.createElement("div");
     group.className = "galleryGroup";
 
-    groupEntries.forEach((fileEntry) => {
+    pending.forEach((fileEntry) => {
       const idx = files.indexOf(fileEntry);
       group.appendChild(createGridItem(fileEntry, idx, isHidden));
     });
 
     container.appendChild(group);
+    pending = [];
+  };
+
+  for (const fileEntry of entries) {
+    if (fileEntry.featured) {
+      flushPending();
+
+      const group = document.createElement("div");
+      group.className = "galleryGroup featuredGroup";
+      const idx = files.indexOf(fileEntry);
+      group.appendChild(createGridItem(fileEntry, idx, isHidden));
+      container.appendChild(group);
+      continue;
+    }
+
+    pending.push(fileEntry);
+    if (pending.length === 4) {
+      flushPending();
+    }
   }
+
+  flushPending();
 }
 
 function buildGrid() {
@@ -639,7 +706,7 @@ function renderAllGrid() {
     const entry = cache.get(file);
     if (!entry) continue;
 
-    const wrapW = Math.floor((preview && preview.clientWidth) || item.clientWidth);
+    const wrapW = Math.floor(item.clientWidth || (preview && preview.clientWidth));
     drawToCanvas(canvas, entry, wrapW);
   }
 }
@@ -806,6 +873,14 @@ function bindUi() {
     renderAllGrid();
     if (isLightboxOpen()) renderLightbox();
   });
+
+  if (typeof ResizeObserver !== "undefined" && !gridResizeObserver) {
+    gridResizeObserver = new ResizeObserver(() => {
+      renderAllGrid();
+      if (isLightboxOpen()) renderLightbox();
+    });
+    gridResizeObserver.observe(els.grid);
+  }
 }
 
 // ---- Init ----

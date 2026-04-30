@@ -163,6 +163,7 @@ select {
   gap: 36px;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 526px), 1fr));
   align-items: start;
+  padding-bottom: 36px;
 }
 
 .galleryGroup {
@@ -170,15 +171,26 @@ select {
   display: grid;
   gap: 6px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
 }
 
 .item {
   position: relative;
   width: 100%;
+  min-width: 0;
+}
+
+.featuredGroup {
+  grid-template-columns: 1fr;
+}
+
+.item.featured-item {
+  grid-column: 1 / -1;
 }
 
 .itemPreview {
   width: 100%;
+  min-width: 0;
   display: grid;
   place-items: center;
   border: none;
@@ -186,13 +198,23 @@ select {
   background: transparent;
 }
 
-.itemDelete {
+.itemActions {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 2;
-  padding: 6px 10px;
-  font-size: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.itemAction {
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  font-size: 15px;
+  line-height: 1;
 }
 
 .reorder-mode .item.reorderable,
@@ -243,6 +265,7 @@ select {
 
 .gbcCanvas {
   display: block;
+  max-width: 100%;
   height: auto;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
